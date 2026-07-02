@@ -1,0 +1,134 @@
+.aag-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483647;
+  width: min(380px, calc(100vw - 36px));
+  max-height: min(620px, calc(100vh - 36px));
+  overflow: hidden;
+  background: #ffffff;
+  color: #18212f;
+  border: 1px solid #d7dee8;
+  border-radius: 8px;
+  box-shadow: 0 14px 36px rgba(18, 25, 38, 0.22);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+
+.aag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7edf5;
+  background: #f7fafc;
+}
+
+.aag-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.aag-body {
+  padding: 12px;
+  overflow: auto;
+  max-height: 560px;
+}
+
+.aag-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.aag-button {
+  border: 1px solid #c9d4e2;
+  background: #ffffff;
+  color: #162233;
+  min-height: 30px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.aag-button:hover {
+  background: #eef5ff;
+  border-color: #8bb7ec;
+}
+
+.aag-button.primary {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.aag-button.warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.aag-button.danger {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.aag-note {
+  color: #5b6678;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.aag-card {
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  background: #ffffff;
+}
+
+.aag-card-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.aag-meta {
+  color: #667386;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.aag-status {
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.aag-status.good {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.aag-status.warn {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.aag-hidden {
+  display: none !important;
+}
+
+.aag-highlight-target {
+  outline: 4px solid #ef4444 !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.18) !important;
+}
