@@ -1,6 +1,6 @@
-# 科研通半自动化应助Chrome浏览器插件
+# 一键应助：科研通半自动化应助 Chrome 浏览器插件
 
-**AbleSci Assist Guard** 是一个面向科研通 / AbleSci 文献互助场景的半自动化应助 Chrome 插件。
+**一键应助** 是一个面向科研通 / AbleSci 文献互助场景的半自动化应助 Chrome 插件。
 
 本项目针对科研通文献互助平台打造，也就是 [https://www.ablesci.com/](https://www.ablesci.com/)。
 
@@ -9,12 +9,12 @@
 > 当前版本适配 **Chrome 浏览器**。  
 > 使用者需要自备有权限的账号，并确保所有文献访问、下载、分享和上传行为合法合规。
 
-English name: **AbleSci Assist Guard**.
+仓库名沿用：**ablesci-assist-guard**。
 
 ## 名称说明
 
-- 中文定位：**科研通半自动化应助Chrome浏览器插件**
-- 扩展名称：**AbleSci Assist Guard**
+- 中文定位：**科研通半自动化应助 Chrome 浏览器插件**
+- 扩展名称：**一键应助**
 - 适用浏览器：**Chrome 浏览器**
 
 ## 项目定位
@@ -25,8 +25,8 @@ English name: **AbleSci Assist Guard**.
 - 帮你接取当前页面中合适的求助帖。
 - 帮你抓取标题、DOI、出版商入口。
 - 帮你打开 DOI / 出版商页面。
-- 帮你识别并点击明确的 `View PDF` 入口。
-- 在你手动下载 PDF 后，帮你自动复制本地 PDF 路径。
+- 帮你识别下载通道，包括 `View PDF`、`Download PDF` 等入口。
+- 在你手动下载 PDF 后，帮你复制最新 PDF 本地路径。
 - 帮你回到科研通上传页时更快选择文件。
 
 它不会：
@@ -56,9 +56,9 @@ English name: **AbleSci Assist Guard**.
 
 ## 功能概览
 
-### 1. Elsevier 求助中一键流程
+### 1. 一键应助流程
 
-点击插件面板里的 `Elsevier求助中` 后，插件会：
+点击插件面板里的 `一键应助` 后，插件会：
 
 1. 强制刷新 Elsevier 求助中列表。
 2. 等待列表加载完成。
@@ -66,33 +66,29 @@ English name: **AbleSci Assist Guard**.
 4. 进入求助详情页。
 5. 抓取标题、DOI 和来源链接。
 6. 打开 DOI / 出版商页面。
-7. 如果识别到明确的 `View PDF`，自动进入 PDF 查看页。
+7. 如果识别到下载通道，自动进入 PDF 预览页。
 
-### 2. 扫描列表流程
+### 2. 求助列表流程
 
-点击 `扫描列表` 后，插件会扫描当前页面可见求助，并在面板中列出。
+点击 `求助列表` 后，插件会扫描当前页面可见求助，并在面板中列出。
 
-你可以选择其中某一条，点击 `打开求助`，插件会从这一条开始进入同样的半自动流程。
+你可以点击 `查看详情` 打开求助帖详情页，或点击列表中的 `一键应助` 从该条求助开始进入同样的半自动流程。
 
 ### 3. PDF 下载后路径复制
 
-进入 ScienceDirect PDF 查看页后：
+进入 PDF 预览页后：
 
 1. 插件开始监听新的 PDF 下载记录。
 2. 你手动点击 Chrome PDF 查看器右上角下载按钮。
 3. 下载完成后，插件自动识别刚下载的 PDF。
 4. 插件把本地 PDF 路径复制到剪贴板。
-5. 回到科研通上传页后，点击 `浏览文件`，直接粘贴路径即可。
+5. 回到科研通上传页后，点击 `浏览文件`，粘贴路径、打开并确认上传。
 
-### 4. 上传区域辅助
+### 4. 当前求助帖辅助
 
-在科研通求助详情页，插件会尝试高亮上传区域，方便你快速定位。
+在科研通求助详情页，插件可以抓取当前求助的论文标题、DOI 和页面地址，并提供 `一键应助本贴`、`复制文献标题` 等按钮。
 
 注意：上传文件和最终提交仍然需要你自己手动确认。
-
-### 5. OpenAlex 开放获取查询
-
-插件可以通过 OpenAlex 查询开放获取候选信息，用于辅助判断是否存在开放获取来源。
 
 ## 安装教程
 
@@ -110,27 +106,28 @@ English name: **AbleSci Assist Guard**.
 6. 点击 `加载已解压的扩展程序`。
 7. 选择包含 `manifest.json` 的项目文件夹。
 8. 打开或刷新 `https://www.ablesci.com/`。
-9. 页面右下角出现 `AbleSci Assist Guard` 面板即安装成功。
+9. 页面右下角出现 `一键应助` 面板即安装成功。
 
 ## 权限说明
 
 插件请求以下权限：
 
 - `storage`：保存临时流程状态。
-- `tabs`：打开 DOI、出版商和检索页面。
+- `tabs`：打开 DOI 和出版商页面。
 - `scripting`：Manifest V3 扩展运行所需。
 - `downloads`：读取 Chrome 下载记录，用于找到用户刚刚下载完成的 PDF。
 - `clipboardWrite`：复制本地 PDF 文件路径，方便用户在文件选择框中粘贴。
+- `offscreen`：后台校验 PDF 响应并避免把 HTML 页面误当成 PDF。
 
 插件的站点权限限制在：
 
 - `www.ablesci.com`
 - `doi.org`
-- `scholar.google.com`
-- `www.google.com`
-- `api.openalex.org`
 - `www.sciencedirect.com`
 - `pdf.sciencedirectassets.com`
+- `link.springer.com`
+- `thejpd.org`
+- `www.thejpd.org`
 
 ## 文件结构
 
@@ -140,8 +137,11 @@ English name: **AbleSci Assist Guard**.
 ├── background.js
 ├── content.js
 ├── content.css
+├── offscreen.html
+├── offscreen.js
 ├── popup.html
 ├── popup.css
+├── icons/
 ├── docs/
 │   └── USAGE.zh-CN.md
 ├── README.md
@@ -158,7 +158,7 @@ English name: **AbleSci Assist Guard**.
 修改代码后：
 
 1. 进入 `chrome://extensions/`。
-2. 找到 AbleSci Assist Guard。
+2. 找到一键应助。
 3. 点击刷新扩展。
 4. 刷新科研通或出版商页面。
 
@@ -166,7 +166,7 @@ English name: **AbleSci Assist Guard**.
 
 本项目仅用于减少用户在合法、手动监督场景下的重复浏览器操作。使用者需要自备有权限的账号，并自行确认是否有权访问、下载、分享或上传相关文献；一切使用均应合法合规。
 
-本项目不隶属于科研通 / AbleSci、Elsevier、ScienceDirect、OpenAlex、Google 或任何出版商。
+本项目不隶属于科研通 / AbleSci、Elsevier、ScienceDirect、Springer Nature、JPD 或任何出版商。
 
 ## License
 

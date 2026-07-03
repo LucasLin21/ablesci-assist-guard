@@ -1,21 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "AbleSci Assist Guard",
-  "description": "科研通 / AbleSci 文献互助半自动化应助 Chrome 插件：辅助打开求助、跳转出版商、定位 PDF 下载路径。",
-  "version": "0.3.8",
-  "permissions": ["storage", "tabs", "scripting", "downloads", "clipboardWrite"],
+  "name": "\u4e00\u952e\u5e94\u52a9",
+  "description": "Supervised helper for AbleSci literature assistance: queue requests, open publisher routes, and streamline PDF upload prep.",
+  "version": "0.4.25",
+  "minimum_chrome_version": "109",
+  "permissions": ["storage", "tabs", "scripting", "downloads", "clipboardWrite", "offscreen"],
   "host_permissions": [
     "https://www.ablesci.com/*",
-    "https://api.openalex.org/*",
     "https://doi.org/*",
-    "https://scholar.google.com/*",
-    "https://www.google.com/*",
     "https://www.sciencedirect.com/*",
-    "https://pdf.sciencedirectassets.com/*"
+    "https://pdf.sciencedirectassets.com/*",
+    "https://link.springer.com/*",
+    "https://thejpd.org/*",
+    "https://www.thejpd.org/*"
   ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "action": {
-    "default_title": "AbleSci Assist Guard",
-    "default_popup": "popup.html"
+    "default_title": "\u4e00\u952e\u5e94\u52a9",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
   },
   "background": {
     "service_worker": "background.js"
@@ -25,7 +38,10 @@
       "matches": [
         "https://www.ablesci.com/*",
         "https://www.sciencedirect.com/*",
-        "https://pdf.sciencedirectassets.com/*"
+        "https://pdf.sciencedirectassets.com/*",
+        "https://link.springer.com/*",
+        "https://thejpd.org/*",
+        "https://www.thejpd.org/*"
       ],
       "js": ["content.js"],
       "css": ["content.css"],
