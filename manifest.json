@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "\u4e00\u952e\u5e94\u52a9",
   "description": "Supervised helper for AbleSci literature assistance: queue requests, open publisher routes, and streamline PDF upload prep.",
-  "version": "0.4.32",
+  "version": "0.4.5",
   "minimum_chrome_version": "109",
   "permissions": ["storage", "tabs", "scripting", "downloads", "clipboardWrite", "offscreen"],
   "host_permissions": [
