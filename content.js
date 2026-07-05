@@ -4,10 +4,16 @@ const AAG = {
   panel: null,
   flow: null,
   latestPdf: null,
-  publisherPdfLocateRun: 0
+  publisherPdfLocateRun: 0,
+  dailyCheckin: null,
+  dailyCheckinClickedThisLoad: false,
+  dailyCheckinObserver: null,
+  dailyCheckinTimer: 0,
+  returnToWaitingTimer: 0
 };
 
 const FLOW_KEY = "assistFlowState";
+const DAILY_CHECKIN_KEY = "aagDailyCheckinState";
 const ELSEVIER_WAITING_URL = "https://www.ablesci.com/assist/index?status=waiting&publisher=elsevier";
 const PDF_WATCH_TIMEOUT_MS = 180000;
 const PUBLISHER_PDF_LOCATE_TIMEOUT_MS = 60000;
@@ -156,8 +162,241 @@ function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function todayKey() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function setDailyCheckinStatus(text, kind = "") {
+  const el = document.getElementById("aag-checkin-status");
+  if (!el) return;
+  const nextClassName = `aag-checkin-status ${kind}`.trim();
+  if (el.textContent !== text) el.textContent = text;
+  if (el.className !== nextClassName) el.className = nextClassName;
+}
+
+function renderDailyCheckinStatus() {
+  const state = AAG.dailyCheckin;
+  const checkedToday = state?.date === todayKey() && state?.status === "done";
+  setDailyCheckinStatus(
+    checkedToday ? "\u4eca\u65e5\u5df2\u6253\u5361\u3002" : "\u4eca\u65e5\u672a\u6253\u5361\u3002",
+    checkedToday ? "good" : ""
+  );
+}
+
+async function loadDailyCheckinState() {
+  const data = await chrome.storage.local.get({ [DAILY_CHECKIN_KEY]: null });
+  AAG.dailyCheckin = data[DAILY_CHECKIN_KEY] || null;
+  renderDailyCheckinStatus();
+  return AAG.dailyCheckin;
+}
+
+async function saveDailyCheckinState(status) {
+  AAG.dailyCheckin = {
+    date: todayKey(),
+    status,
+    updatedAt: new Date().toISOString()
+  };
+  await chrome.storage.local.set({ [DAILY_CHECKIN_KEY]: AAG.dailyCheckin });
+  renderDailyCheckinStatus();
+}
+
+function dailyCheckinControlText(element) {
+  return [
+    controlText(element),
+    element?.value || ""
+  ].join(" ").replace(/\s+/g, " ").trim();
+}
+
+function findDailyCheckinButton() {
+  return Array.from(document.querySelectorAll("button, a, [role='button'], input[type='button'], input[type='submit']"))
+    .filter((el) => !el.closest(".aag-panel") && isVisible(el) && !el.disabled)
+    .find((el) => {
+      const text = dailyCheckinControlText(el);
+      return /\u4eca\u65e5\s*\u6253\u5361\s*\u7b7e\u5230/.test(text) ||
+        /\u4eca\u65e5\s*\u7b7e\u5230/.test(text);
+    }) || null;
+}
+
+function pageTextWithoutPanel() {
+  const panelText = AAG.panel ? textOf(AAG.panel) : "";
+  const bodyText = textOf(document.body);
+  return panelText ? bodyText.replace(panelText, " ") : bodyText;
+}
+
+function hasDailyCheckinDoneHint() {
+  const text = pageTextWithoutPanel();
+  return /\u4eca\u65e5\s*\u5df2\s*(?:\u6253\u5361|\u7b7e\u5230)/.test(text) ||
+    /\u5df2\s*(?:\u6253\u5361|\u7b7e\u5230)/.test(text) ||
+    /(?:\u6253\u5361|\u7b7e\u5230)\s*(?:\u6210\u529f|\u5df2\u5b8c\u6210)/.test(text);
+}
+
+async function detectDailyCheckin() {
+  renderDailyCheckinStatus();
+  if (!isAbleSci()) return;
+
+  const button = findDailyCheckinButton();
+  if (button) {
+    if (AAG.dailyCheckinClickedThisLoad) return;
+    AAG.dailyCheckinClickedThisLoad = true;
+    setDailyCheckinStatus("\u6b63\u5728\u81ea\u52a8\u6253\u5361...", "");
+    button.click();
+    await saveDailyCheckinState("done");
+    window.setTimeout(() => {
+      detectDailyCheckin().catch((error) => {
+        console.warn("\u4e00\u952e\u5e94\u52a9 daily check-in retry failed:", error);
+      });
+    }, 2000);
+    return;
+  }
+
+  if (hasDailyCheckinDoneHint()) {
+    await saveDailyCheckinState("done");
+  }
+}
+
+function scheduleDailyCheckinDetection(delayMs = 500) {
+  window.clearTimeout(AAG.dailyCheckinTimer);
+  AAG.dailyCheckinTimer = window.setTimeout(() => {
+    detectDailyCheckin().catch((error) => {
+      console.warn("\u4e00\u952e\u5e94\u52a9 daily check-in detection failed:", error);
+    });
+  }, delayMs);
+}
+
+async function initDailyCheckin() {
+  await loadDailyCheckinState();
+  await detectDailyCheckin();
+
+  if (!isAbleSci()) return;
+
+  if (!AAG.dailyCheckinObserver) {
+    AAG.dailyCheckinObserver = new MutationObserver((records) => {
+      const onlyPanelChanged = records.every((record) => {
+        const target = record.target instanceof Element ? record.target : record.target.parentElement;
+        return target?.closest?.(".aag-panel");
+      });
+      if (!onlyPanelChanged) scheduleDailyCheckinDetection();
+    });
+    AAG.dailyCheckinObserver.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+  }
+
+  [1200, 3000, 6000, 10000].forEach((delayMs) => {
+    window.setTimeout(() => {
+      detectDailyCheckin().catch((error) => {
+        console.warn("\u4e00\u952e\u5e94\u52a9 daily check-in polling failed:", error);
+      });
+    }, delayMs);
+  });
+}
+
 function isAbleSciDetailPage() {
   return isAbleSci() && /\/assist\/detail/i.test(location.pathname);
+}
+
+function uploadedDocumentStatusText() {
+  if (!isAbleSciDetailPage()) return "";
+  const text = pageTextWithoutPanel();
+  const hasUploadedHint = /\u5df2\u7ecf\u6709\u4eba\u4e0a\u4f20\u4e86?\u6587\u732e/.test(text) ||
+    /\u6709\u4eba\u4e0a\u4f20\u4e86?\u6587\u732e/.test(text);
+  const hasWaitingConfirmHint = /\u6b63\u5728\u7b49\u5f85\u6c42\u52a9\u8005\u786e\u8ba4/.test(text) ||
+    /\u8bf7\u7b49\u5f85\u6c42\u52a9\u4eba\u786e\u8ba4/.test(text) ||
+    /\u7b49\u5f85\u6c42\u52a9\u8005?\u786e\u8ba4/.test(text);
+  const hasLockedUploadHint = /\u8be5\u72b6\u6001\u4e0b\u5176\u4ed6\u4eba\u65e0\u6cd5\u4e0a\u4f20/.test(text);
+  const hasPendingStatus = /\u5f85\u786e\u8ba4/.test(text) && /\u4e0a\u4f20/.test(text);
+
+  if (hasUploadedHint && (hasWaitingConfirmHint || hasLockedUploadHint || hasPendingStatus)) {
+    return "\u5df2\u7ecf\u6709\u4eba\u4e0a\u4f20\u4e86\u6587\u732e\uff0c\u6b63\u5728\u7b49\u5f85\u6c42\u52a9\u8005\u786e\u8ba4";
+  }
+
+  return "";
+}
+
+function completedAssistStatusText() {
+  if (!isAbleSciDetailPage()) return "";
+  const text = pageTextWithoutPanel();
+  const hasFinishedBadge = /\u5df2\u5b8c\u7ed3/.test(text);
+  const hasCompletedHint = /\u6c42\u52a9\u5df2\u5b8c\u6210/.test(text);
+  const requesterOnlyDownload = /\u4ec5\u9650\u6c42\u52a9\u4eba\u4e0b\u8f7d/.test(text);
+  if (hasFinishedBadge || hasCompletedHint || requesterOnlyDownload) {
+    return "\u8be5\u6c42\u52a9\u5df2\u5b8c\u6210";
+  }
+  return "";
+}
+
+function isSupplementaryMaterialRequestText(text) {
+  return /\u6c42\u52a9\u8865\u5145\u6750\u6599/.test(text) ||
+    /\[\s*\u6c42\u52a9\u8865\u5145\u6750\u6599\s*\]/.test(text) ||
+    /\b(?:supplementary|supplemental)\s+(?:material|materials|information|data|file|files)\b/i.test(text) ||
+    /\b(?:supporting)\s+(?:information|material|materials|data|file|files)\b/i.test(text);
+}
+
+function supplementaryMaterialStatusText() {
+  if (!isAbleSciDetailPage()) return "";
+  return isSupplementaryMaterialRequestText(pageTextWithoutPanel()) ?
+    "\u8be5\u6c42\u52a9\u4e3a\u8865\u5145\u6750\u6599\uff0c\u4e0d\u5728\u4e00\u952e\u5e94\u52a9\u8303\u56f4\u5185" :
+    "";
+}
+
+function cellPublisherStatusText(request = null) {
+  const values = [
+    request?.doi || "",
+    request?.link || "",
+    request?.pageUrl || "",
+    isAbleSciDetailPage() ? getLabeledValue(CN.doi) : "",
+    isAbleSciDetailPage() ? location.href : ""
+  ].join(" ");
+  const normalized = values.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "");
+  const isCellPublisher = /(^|[/:.])cell\.com/i.test(values) ||
+    /10\.1016\/j\.[^\s/]*cell/i.test(normalized);
+  return isCellPublisher ?
+    "\u8be5\u6c42\u52a9\u7684 DOI/\u51fa\u7248\u5546\u5c5e\u4e8e Cell/Cell Press\uff0c\u4e0d\u5728\u4e00\u952e\u5e94\u52a9\u8303\u56f4\u5185" :
+    "";
+}
+
+function semanticScholarStatusText(request = null) {
+  const values = [
+    request?.link || "",
+    request?.pageUrl || "",
+    isAbleSciDetailPage() ? pageTextWithoutPanel() : ""
+  ].join(" ");
+  return /(?:^|[/:.])semanticscholar\.org/i.test(values) || /\bsemanticscholar\b/i.test(values) ?
+    "\u8be5\u6c42\u52a9\u94fe\u63a5\u6765\u81ea Semantic Scholar \u7d22\u5f15\u5e93\uff0c\u4e0d\u5728\u4e00\u952e\u5e94\u52a9\u8303\u56f4\u5185" :
+    "";
+}
+
+function isSupplementaryAssistContainer(container) {
+  return isSupplementaryMaterialRequestText(textOf(container));
+}
+
+function scheduleReturnToWaitingList(delayMs = 1200) {
+  window.clearTimeout(AAG.returnToWaitingTimer);
+  AAG.returnToWaitingTimer = window.setTimeout(() => {
+    location.href = freshElsevierWaitingUrl();
+  }, delayMs);
+}
+
+async function stopIfDetailAlreadyHandled(request, { returnToWaitingList = true } = {}) {
+  const statusText = semanticScholarStatusText(request) ||
+    cellPublisherStatusText(request) ||
+    supplementaryMaterialStatusText() ||
+    completedAssistStatusText() ||
+    uploadedDocumentStatusText();
+  if (!statusText) return false;
+  if (request) renderCurrent(request);
+  await clearFlowState();
+  setStatus(
+    `${statusText}\uff0c\u5df2\u7ec8\u6b62\u6253\u5f00 DOI/\u51fa\u7248\u5546\u6d41\u7a0b\u3002${returnToWaitingList ? "\u5373\u5c06\u8fd4\u56de\u6c42\u52a9\u4e2d Elsevier \u5217\u8868\u3002" : ""}`,
+    "warn"
+  );
+  if (returnToWaitingList) scheduleReturnToWaitingList();
+  return true;
 }
 
 function isElsevierWaitingPage() {
@@ -280,7 +519,10 @@ function extractFromListPage() {
 
 function findAssistButtons() {
   return Array.from(document.querySelectorAll("a, button"))
-    .filter((el) => isVisible(el) && textOf(el) === CN.assistButton);
+    .filter((el) => {
+      if (!isVisible(el) || textOf(el) !== CN.assistButton) return false;
+      return !isSupplementaryAssistContainer(getRequestContainer(el));
+    });
 }
 
 function getRequestContainer(element) {
@@ -385,6 +627,8 @@ function publisherUrls(request) {
 }
 
 async function openPublisherAutomation(request, statusText) {
+  if (await stopIfDetailAlreadyHandled(request)) return false;
+
   const urls = publisherUrls(request);
   if (!urls.length) {
     setStatus("\u672a\u8bc6\u522b\u5230 DOI \u6216\u51fa\u7248\u5546\u94fe\u63a5\u3002", "warn");
@@ -554,6 +798,7 @@ function createPanel() {
       </div>
       <div id="aag-current"></div>
       <div id="aag-status" class="aag-status">\u51c6\u5907\u5c31\u7eea\u3002</div>
+      <div id="aag-checkin-status" class="aag-checkin-status">\u4eca\u65e5\u672a\u6253\u5361\u3002</div>
       <div id="aag-list"></div>
     </div>
   `;
@@ -753,6 +998,8 @@ async function continueCurrentFlow() {
     if (AAG.flow?.mode === "after-claim-open-publisher") {
       const request = extractFromDetailPage();
       renderCurrent(request);
+      if (await stopIfDetailAlreadyHandled(request)) return;
+
       const urls = publisherUrls(request);
       if (!urls.length) {
         setStatus("\u5df2\u6293\u53d6\u8be6\u60c5\uff0c\u4f46\u672a\u8bc6\u522b\u5230 DOI \u6216\u51fa\u7248\u5546\u94fe\u63a5\u3002", "warn");
@@ -1103,6 +1350,7 @@ async function boot() {
   createPanel();
   clearHighlights();
   await loadFlowState();
+  await initDailyCheckin();
   window.setTimeout(() => {
     autoResumeFlow().catch((error) => {
       setStatus(`\u81ea\u52a8\u7eed\u8dd1\u5931\u8d25\uff1a${error?.message || String(error)}`, "warn");
